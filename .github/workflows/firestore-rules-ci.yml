@@ -1,0 +1,38 @@
+name: Firestore Security Rules Validation
+
+on:
+  push:
+    paths:
+      - 'firestore.rules'
+      - 'firestore.test.js'
+      - 'firebase.json'
+      - '.github/workflows/firestore-rules-ci.yml'
+  pull_request:
+    paths:
+      - 'firestore.rules'
+      - 'firestore.test.js'
+      - 'firebase.json'
+  workflow_dispatch:
+
+jobs:
+  validate-rules:
+    name: Test Firestore Security Rules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install Firebase Tools & Rules Testing Library
+        run: |
+          npm install -g firebase-tools
+          npm install @firebase/rules-unit-testing
+
+      - name: Start Emulators & Run Rules Unit Tests
+        run: |
+          firebase emulators:exec --only firestore,auth --project demo-no-project "node --test firestore.test.js"

@@ -1,0 +1,6 @@
+{
+  "name": "JOYVERSE",
+  "description": "A Personal Activity Universe & Global Hobby Community - Discover More. Create More. Connect Through Hobbies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 30 &&
+             data.avatar is string && data.avatar.size() <= 100 &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             (!('interests' in data) || data.interests is list) &&
+             (!('favoriteCategories' in data) || data.favoriteCategories is list) &&
+             (!('personalGoals' in data) || data.personalGoals is list) &&
+             (!('preferredLanguages' in data) || data.preferredLanguages is list) &&
+             (!('recommendationPrefs' in data) || data.recommendationPrefs is list) &&
+             data.xp is int && data.xp >= 0 &&
+             data.level is int && data.level >= 1 &&
+             data.streak is int && data.streak >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUserActivity(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+             data.category is string && data.category.size() <= 50 &&
+             (!('icon' in data) || (data.icon is string && data.icon.size() <= 50)) &&
+             (!('color' in data) || (data.color is string && data.color.size() <= 20)) &&
+             (!('priority' in data) || (data.priority is string && data.priority.size() <= 20)) &&
+             data.estimatedMinutes is int && data.estimatedMinutes >= 0 && data.estimatedMinutes <= 1440 &&
+             (!('scheduledDate' in data) || (data.scheduledDate is string && data.scheduledDate.size() <= 30)) &&
+             (!('deadline' in data) || (data.deadline is string && data.deadline.size() <= 30)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+             data.isCompleted is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidHobbySpace(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 80 &&
+             data.description is string && data.description.size() <= 400 &&
+             data.category is string && data.category.size() <= 50 &&
+             (!('icon' in data) || (data.icon is string && data.icon.size() <= 50)) &&
+             data.memberCount is int && data.memberCount >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidCommunityPost(data) {
+      return data.authorId is string && data.authorId == request.auth.uid &&
+             data.authorUsername is string && data.authorUsername.size() >= 2 && data.authorUsername.size() <= 30 &&
+             (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 100)) &&
+             (!('spaceId' in data) || (data.spaceId is string && data.spaceId.size() <= 80)) &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 2000 &&
+             data.category is string && data.category.size() <= 50 &&
+             (!('likesCount' in data) || data.likesCount is int) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      match /activities/{activityId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidUserActivity(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /spaces/{spaceId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidHobbySpace(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidCommunityPost(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.authorId == request.auth.uid && isValidCommunityPost(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+  }
+}

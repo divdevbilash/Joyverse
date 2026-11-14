@@ -1,0 +1,126 @@
+name: Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK & Accept Licenses
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          if [ -z "$SDK_ROOT" ]; then
+            SDK_ROOT="/usr/local/lib/android/sdk"
+          fi
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SDKMANAGER" ]; then
+            { yes || true; } | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses > /dev/null 2>&1 || true
+            { yes || true; } | "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platforms;android-36.1" "build-tools;36.0.0"
+          else
+            echo "::warning::sdkmanager not found at $SDKMANAGER"
+          fi
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache Robolectric Maven Artifacts
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-robolectric-
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Keystore & Environment
+        run: |
+          if [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          else
+            keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          : > .env
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Build Installable Android APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+      - name: Dump CI Failure Diagnostics
+        if: failure()
+        run: |
+          java -version
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          ls -la "$SDK_ROOT/platforms" "$SDK_ROOT/build-tools" 2>&1 || true
+          if [ -d app/build/test-results/testDebugUnitTest ]; then
+            cat app/build/test-results/testDebugUnitTest/*.xml || true
+          fi
+
+      - name: Prepare & Verify APK Asset
+        run: |
+          RAW_TAG="${{ github.ref_name }}"
+          INPUT_TAG="${{ inputs.version }}"
+          VERSION="${INPUT_TAG:-${RAW_TAG:-v1.0.0}}"
+          APK_SRC="app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -s "$APK_SRC" ]; then
+            echo "ERROR: APK not found or empty at $APK_SRC"
+            exit 1
+          fi
+          cp "$APK_SRC" "joyverse-${VERSION}.apk"
+          ls -lh "joyverse-${VERSION}.apk"
+          echo "RELEASE_VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release and Upload APK
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: "JOYVERSE ${{ env.RELEASE_VERSION }}"
+          draft: false
+          prerelease: false
+          files: joyverse-*.apk
+          body: |
+            ## JOYVERSE ${{ env.RELEASE_VERSION }} 🪐
+            > *"Discover More. Create More. Connect Through Hobbies."*
+
+            ### 🚀 Highlights in this Release:
+            - **Personal Activity Universe**: Offline-first task and hobby manager powered by SQLite/Room and Google Cloud Firestore.
+            - **Intelligent FreeTime Corner**: Instant recommendations for 5, 10, 15, 30, 45, or 60 minutes based on mood and energy.
+            - **WorldVerse**: Explore countries, verified cultural facts, daily world discoveries, and native vocabulary lessons.
+            - **Hobby Spaces**: Community directory connecting explorers through crafts and creative experiments.
+            - **Pseudonymous Identity**: 8 cosmic avatar presets with zero private data exposure.
+            - **Gamified Progression**: Live XP leveling, daily quests, and daily streak counter.
+
+            ### 📲 Installation:
+            1. Download `joyverse-${{ env.RELEASE_VERSION }}.apk` below to any Android device (Android 7.0+ / API 24+).
+            2. Tap the downloaded APK to install (enable "Install unknown apps" if prompted).
+            3. Open **JOYVERSE** and sign in with Google to enter your universe.

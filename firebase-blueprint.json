@@ -1,0 +1,232 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Pseudonymous user profile and onboarding preferences in Joyverse.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the profile owner."
+        },
+        "username": {
+          "type": "string",
+          "description": "Unique pseudonymous username."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Avatar preset key or asset identifier."
+        },
+        "bio": {
+          "type": "string",
+          "description": "Optional user biography."
+        },
+        "interests": {
+          "type": "array",
+          "description": "Selected interest tags."
+        },
+        "favoriteCategories": {
+          "type": "array",
+          "description": "Favorite activity categories."
+        },
+        "personalGoals": {
+          "type": "array",
+          "description": "User self-selected goals."
+        },
+        "preferredLanguages": {
+          "type": "array",
+          "description": "Preferred languages for discovery."
+        },
+        "recommendationPrefs": {
+          "type": "array",
+          "description": "Recommendation preference signals."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Total gamification experience points."
+        },
+        "level": {
+          "type": "integer",
+          "description": "Progression level."
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Consecutive days active streak."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Must be FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp. Must be FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "username", "avatar", "xp", "level", "streak", "createdAt", "updatedAt"]
+    },
+    "UserActivity": {
+      "title": "UserActivity",
+      "description": "Personal activities tracked and scheduled by the user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Activity title."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the activity."
+        },
+        "category": {
+          "type": "string",
+          "description": "Activity category."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon key."
+        },
+        "color": {
+          "type": "string",
+          "description": "Color hex."
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level (Low, Medium, High)."
+        },
+        "estimatedMinutes": {
+          "type": "integer",
+          "description": "Estimated duration in minutes."
+        },
+        "scheduledDate": {
+          "type": "string",
+          "description": "ISO date string for scheduled activity."
+        },
+        "deadline": {
+          "type": "string",
+          "description": "Optional deadline."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Personal notes."
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Completion flag."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Must be FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp. Must be FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "title", "category", "estimatedMinutes", "isCompleted", "createdAt", "updatedAt"]
+    },
+    "HobbySpace": {
+      "title": "HobbySpace",
+      "description": "Hobby community spaces in Joyverse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Space name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Space description."
+        },
+        "category": {
+          "type": "string",
+          "description": "Hobby category."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier."
+        },
+        "memberCount": {
+          "type": "integer",
+          "description": "Total member count."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        }
+      },
+      "required": ["name", "description", "category", "memberCount", "createdAt"]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "User shared creative projects and hobby discoveries.",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "description": "Author UID."
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "Author pseudonymous username."
+        },
+        "authorAvatar": {
+          "type": "string",
+          "description": "Author avatar key."
+        },
+        "spaceId": {
+          "type": "string",
+          "description": "Target space ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Post title."
+        },
+        "content": {
+          "type": "string",
+          "description": "Post content."
+        },
+        "category": {
+          "type": "string",
+          "description": "Content category."
+        },
+        "likesCount": {
+          "type": "integer",
+          "description": "Likes counter."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        }
+      },
+      "required": ["authorId", "authorUsername", "title", "content", "category", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of pseudonymous user profiles."
+    },
+    "/users/{userId}/activities/{activityId}": {
+      "schema": "UserActivity",
+      "description": "Private activities of each user."
+    },
+    "/spaces/{spaceId}": {
+      "schema": "HobbySpace",
+      "description": "Community hobby spaces directory."
+    },
+    "/posts/{postId}": {
+      "schema": "CommunityPost",
+      "description": "Shared hobby activities and projects."
+    }
+  }
+}
