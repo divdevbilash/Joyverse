@@ -1,5 +1,6 @@
 package com.example.feature.auth
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.util.Log
@@ -53,7 +54,6 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
-import com.example.R
 import com.example.core.designsystem.components.JoyverseCard
 import com.example.ui.theme.AstralBlue
 import com.example.ui.theme.CosmicBorder
@@ -322,6 +322,7 @@ private fun FeaturePillar(
     }
 }
 
+@SuppressLint("DiscouragedApi")
 private fun performGoogleSignIn(
     context: Context,
     credentialManager: CredentialManager,
@@ -331,8 +332,12 @@ private fun performGoogleSignIn(
     onCancelled: () -> Unit
 ) {
     val clientId = try {
-        context.getString(R.string.default_web_client_id)
+        val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+        if (resId != 0) context.getString(resId) else ""
     } catch (e: Exception) {
+        ""
+    }
+    if (clientId.isBlank()) {
         onError("Google Sign-In configuration missing: default_web_client_id not found")
         return
     }
